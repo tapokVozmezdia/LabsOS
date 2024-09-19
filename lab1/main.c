@@ -3,17 +3,12 @@
 
 // This is the first lab for Operating Systems subject in uni.
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <dirent.h>
-
-#include <sys/types.h>
-#include <stdbool.h>
+#include "dirfn.h"
 
 int main(int argc, char* argv[])
 {
     
+    int index;
     char c;
     bool l = false, a = false; 
 
@@ -39,7 +34,13 @@ int main(int argc, char* argv[])
         }
     }
 
-    
+    if (optind >= argc)
+        list_dir(".", l, a);
+    else
+        for (index = optind; index < argc; ++index)
+        {
+            // TODO
+        }   
 
     return 0;
 }
