@@ -63,4 +63,9 @@ void list_dir(const char * path, bool long_form, bool all)
     if (!long_form)
         printf("\n");
     
+    if (closedir(dir) == -1)
+    {
+        fprintf(stderr, "failed to close directory\n");
+        exit(EXIT_FAILURE);
+    }
 }

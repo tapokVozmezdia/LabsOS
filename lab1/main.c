@@ -3,10 +3,6 @@
 
 // This is the first lab for Operating Systems subject in uni.
 
-// THERE IS A MEMORY LEAK HERE SOMEWHERE YO
-// AND IM TOO TIRED TO FIX IT NOW
-// AHHAHAHHAHAHAHAHHAHAHAHAHAHA
-
 #include "dirfn.h"
 
 int main(int argc, char* argv[])
