@@ -1,13 +1,16 @@
 all: myls
 
-myls: main.o dirfn.o
-	gcc main.o dirfn.o -o myls
+myls: main.o dirfn.o chsort.o
+	gcc main.o dirfn.o chsort.o -o myls
 
 main.o: main.c
-	gcc -c main.c
+	gcc -g -c main.c
 
 dirfn.o: dirfn.c
-	gcc -c dirfn.c
+	gcc -g -c dirfn.c
+
+chsort.o: chsort.c
+	gcc -g -c chsort.c
 
 clean:
 	rm -rf *.o myls

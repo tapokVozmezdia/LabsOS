@@ -1,7 +1,7 @@
 // Since we can't have anything 'unnecessary' in lab dirs
 // this is going to be a replacement for a README file
 
-// This is the first lab for Operating Systems subject in uni.
+// This is the first lab 1for Operating Systems subject in uni.
 
 #include "dirfn.h"
 
@@ -39,7 +39,10 @@ int main(int argc, char* argv[])
     else
         for (index = optind; index < argc; ++index)
         {
-            // TODO
+            printf("%s:\n", argv[index]);
+            list_dir(argv[index], l, a);
+            if (index + 1 < argc)
+                printf("\n");
         }   
 
     return 0;
