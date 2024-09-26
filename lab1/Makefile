@@ -1,7 +1,7 @@
 all: myls
 
 myls: main.o dirfn.o chsort.o
-	gcc main.o dirfn.o chsort.o -o myls
+	gcc main.o dirfn.o chsort.o -lm -o myls
 
 main.o: main.c
 	gcc -g -c main.c

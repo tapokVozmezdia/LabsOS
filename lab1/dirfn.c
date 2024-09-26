@@ -1,19 +1,17 @@
 #include "chsort.h"
 #include "dirfn.h"
 
-// does not skip a line (no \n)
-void print_entry(const char * path, const char * entry_name, bool long_form)
+int __n_digits(lint num)
 {
-      
-    struct stat file_stat;
+    int ans = (num != 0 ? floor(log10(abs(num))) + 1 : 1);
+    return ans;
+}
 
-    // printf("%s\n", entry_name);
-    // printf("%d\n", strlen(entry_name));  
-    int last_se = (path[strlen(path) - 1] == '/' ? 1 : 0); 
-    // char * n_path = (char*)malloc(strlen(path) * sizeof(char) - last_se * sizeof(char));
-    // memcpy(n_path, path, strlen(path) * sizeof(char) - last_se * sizeof(char));
-    
+// needs to be freed after!
+char * __make_fp(const char * path, const char * entry_name)
+{
     char * fp_entry;
+
     if (strlen(path) == 1 && path[0] == '.')
     {
         // printf("WORKED\n");
@@ -36,6 +34,75 @@ void print_entry(const char * path, const char * entry_name, bool long_form)
         strcpy(&fp_entry[strlen(path) + 1], entry_name);
 
     }
+
+    return fp_entry;
+}
+
+void __calc_lengths(const char * path, char ** entries,
+    int num_of_entries, struct prm_lens * lns, 
+    blkcnt_t * total_blocks)
+{
+
+    lns->grp_len = 0;
+    lns->lks_len = 0;
+    lns->own_len = 0;
+    lns->s_len = 0;
+
+    *total_blocks = 0;
+
+    int i = 0;
+    for (; i < num_of_entries; ++i)
+    {
+
+        struct stat file_stat;
+
+        char * fp_entry = __make_fp(path, entries[i]);
+
+        if (lstat(fp_entry, &file_stat) == -1)
+        {
+            fprintf(stderr, "critical error in lstat\n");
+            exit(EXIT_FAILURE);
+        }
+
+        *total_blocks += file_stat.st_blocks;
+
+        struct passwd *pwd = getpwuid(file_stat.st_uid);
+        struct group *grp = getgrgid(file_stat.st_gid);
+
+        int l_len = __n_digits((long)file_stat.st_nlink);
+        int st_len = __n_digits((long)file_stat.st_size);
+        int o_len = pwd ? strlen(pwd->pw_name) : __n_digits((long)file_stat.st_uid);
+        int g_len = grp ? strlen(grp->gr_name) : __n_digits((long)file_stat.st_gid);
+
+        if (l_len > lns->lks_len)
+            lns->lks_len = l_len;
+        if (o_len > lns->own_len)
+            lns->own_len = o_len;
+        if (g_len > lns->grp_len)
+            lns->grp_len = g_len;
+        if (st_len > lns->s_len)
+            lns->s_len = st_len;
+
+        free(fp_entry);
+
+    }
+
+}
+
+// does not skip a line (no \n)
+void print_entry(const char * path, const char * entry_name, bool long_form,
+    struct prm_lens * lns)
+{
+      
+    struct stat file_stat;
+
+    // printf("%s\n", entry_name);
+    // printf("%d\n", strlen(entry_name));  
+    // int last_se = (path[strlen(path) - 1] == '/' ? 1 : 0); 
+    // char * n_path = (char*)malloc(strlen(path) * sizeof(char) - last_se * sizeof(char));
+    // memcpy(n_path, path, strlen(path) * sizeof(char) - last_se * sizeof(char));
+    
+    char * fp_entry = __make_fp(path, entry_name);
 
     // free(n_path1);
 
@@ -120,21 +187,23 @@ void print_entry(const char * path, const char * entry_name, bool long_form)
 
     prmns[10] = '\0';    
 
-    printf("%s %d ", prmns, file_stat.st_nlink);    
+    printf("%s %*ld ", prmns, lns->lks_len, (long)file_stat.st_nlink);    
 
     struct passwd *pwd = getpwuid(file_stat.st_uid);
     struct group *grp = getgrgid(file_stat.st_gid);
     
     if (pwd && grp)
     {
-        printf("%s %s ", pwd->pw_name, grp->gr_name);
+        printf("%-*s %-*s ", lns->own_len, pwd->pw_name, 
+            lns->grp_len, grp->gr_name);
     }
     else
     {
-        printf(" %ld %ld ", (long)file_stat.st_uid, (long)file_stat.st_gid);
+        printf(" %-*ld %-*ld ", lns->own_len, (long)file_stat.st_uid, 
+            lns->grp_len, (long)file_stat.st_gid);
     }
 
-    printf(" %ld", (long)file_stat.st_size);
+    printf(" %*ld", lns->s_len, (long)file_stat.st_size);
 
     char timebuf[80];
     struct tm lt;
@@ -208,12 +277,20 @@ void list_dir(const char * path, bool long_form, bool all)
     
     sort_entries(entries, num_of_entries);
 
+    struct prm_lens lns;
+    blkcnt_t total_blocks;
+
+    __calc_lengths(path, entries, num_of_entries, &lns, &total_blocks);
+
+    if (long_form)
+        printf("total %ld\n", (long)total_blocks / 2);
+
     int cntr = 0;
     for (;cntr < num_of_entries; cntr++)
     {
         //printf("%s\n", entries[cntr]);
     
-        print_entry(path, entries[cntr], long_form);
+        print_entry(path, entries[cntr], long_form, &lns);
         if (long_form)
             printf("\n");
         else
