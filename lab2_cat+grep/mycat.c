@@ -37,8 +37,7 @@ void display_file(FILE * f, CatFlags * fl)
 
         bool empt = (line[0] == '\n');
         
-        if ((fl->n && (!fl->b || !empt))
-            || (fl->b && !empt))
+        if ((fl->n) || (fl->b && !empt))
         {
             printf("%6d\t", line_num);
             line_num += 1;
@@ -68,7 +67,7 @@ int main(int argc, char * argv[])
         {
             case 'n':
             {
-                fl.n = true;
+                fl.n = (fl.b ? false : true);
                 break;
             }
             case 'b':
