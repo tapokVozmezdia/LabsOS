@@ -43,8 +43,7 @@ int symMode(string mode_str, mode_t * f_mode)
         }
         default:
         {
-            fprintf(stderr, "permission error: %c\n", type);
-            return -1;
+            break;
         }
     }
 
