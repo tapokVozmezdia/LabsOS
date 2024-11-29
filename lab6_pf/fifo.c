@@ -2,99 +2,73 @@
 #include <stdlib.h>
 
 #include <unistd.h>
-#include <errno.h>
-
 #include <string.h>
-#include <sys/stat.h>
 
 #include <sys/types.h>
-#include <sys/wait.h>
+#include <sys/stat.h>
 
 #include <fcntl.h>
 #include <time.h>
 
-int size = 256;
-
-int main(int argc, char * argv[]) 
+int main()
 {
 
-    if (argc < 2) 
+    pid_t pid;
+    time_t parent_time;
+    char message[256];
+
+    if (mkfifo("lab6_fifo", 0666) == -1)
     {
-        fprintf(stderr, "Not enough args: require fifoname\n");
-        return 1;
+        perror("critical error in fifo");
+        exit(1);
     }
 
-    (void)argc; 
-    (void)argv;
+    pid = fork();
 
-    int fifoRes = mkfifo(argv[1], S_IRUSR | S_IWUSR);
-
-    if (fifoRes != 0) 
+    if (pid < 0)
     {
-        int err = errno;
-        fprintf(stderr, "Error while processing mkfifo: %s (%d)\n", strerror(err), err);
-        return 1;
+        perror("critical error in fork");
+        exit(1);
+    }
+    else if (pid > 0)
+    {
+
+        parent_time = time(NULL);
+        printf("\nparent pid=%d; time: %s", getpid(), ctime(&parent_time));
+        snprintf(message, sizeof(message), "Parent pid=%d; time: %s", getpid(), ctime(&parent_time));
+
+        sleep(5);
+
+        int fd = open("lab6_fifo", O_WRONLY);
+        if (fd == -1)
+        {
+            perror("failed to open fifo for writing");
+            exit(1);
+        }
+
+        write(fd, message, strlen(message) + 1);
+
+        close(fd);
+        unlink("lab6_fifo");
+    }
+    else
+    {
+        int fd = open("lab6_fifo", O_RDONLY);
+        if (fd == -1)
+        {
+            perror("failed to open fifo for reading");
+            exit(1);
+        }
+
+        read(fd, message, sizeof(message));
+
+        time_t child_time = time(NULL);
+        printf("child pid=%d; time: %s", getpid(), ctime(&child_time));
+        printf("recieved message: %s\n", message);
+
+        close(fd);
     }
 
-    int res;
-    
-	switch(res = fork()) 
-    {
-
-		case -1: 
-        {
-			int err = errno;
-			fprintf(stderr, "Fork error: %s (%d)\n", strerror(err), err);
-			break;
-		}
-
-		case 0: 
-        {
-			time_t mytime = time(NULL);
-            struct tm *now = localtime(&mytime);
-            printf("Child time: %d:%d:%d from process with pid %d\n", now->tm_hour, now->tm_min, now->tm_sec, getpid());
-
-			int fd = open(argv[1], O_RDONLY);
-			if(fd == -1) {
-				fprintf(stderr, "Error while processing open fifo\n");
-				return 1;
-			}
-			int len = 0;
-            char buf[size];
-			while((len = read(fd, buf, sizeof(buf))) != 0) {
-				write(2, buf, len);
-			}
-			close(fd);
-			break;	
-		}
-
-		default: 
-        {
-			sleep(5);
-
-			time_t mytime = time(NULL);
-            struct tm *now = localtime(&mytime);
-            char* parent_time = (char*)calloc(1, size);
-            sprintf(parent_time, "Parent time: %d:%d:%d from process with pid ", now->tm_hour, now->tm_min, now->tm_sec);
-            char* pid = (char*)calloc(1, 16);
-			sprintf(pid, "%d\n", getpid());
-            strcat(parent_time, pid);
-
-			int fd = open(argv[1], O_WRONLY);
-			if(fd == -1) 
-            {
-				fprintf(stderr, "Error while processing open fifo\n");
-				free(parent_time); free(pid);
-				return 1;
-			}
-			write(fd, parent_time, strlen(parent_time) + 1);
-			free(parent_time); free(pid); 
-            close(fd);
-			break;
-		}
-
-	}
-    unlink(argv[1]);
     return 0;
 
 }

@@ -1,83 +1,60 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <string.h>
-#include <time.h>
-
 #include <unistd.h>
-#include <errno.h>
+#include <string.h>
 
 #include <sys/types.h>
-#include <sys/wait.h>
+#include <time.h>
 
-int size = 256; 
-
-int main(int argc, char * argv[]) 
+int main()
 {
 
-    (void)argc; 
-    (void)argv;
+    int pipe_fd[2];
+    pid_t pid;
+    time_t parent_time;
+    char message[256];
 
-    int pipedesc[2];
-    int pipeRes = pipe(pipedesc);
-
-    if (pipeRes != 0) 
+    if (pipe(pipe_fd) == -1)
     {
-        int err = errno;
-        fprintf(stderr, "Error while processing pipe: %s (%d)\n", strerror(err), err);
-        return 1;
+        perror("critical error in pipe");
+        exit(1);
     }
 
-    int res = 0;
+    pid = fork();
+    if (pid < 0)
+    {
+        perror("critical error in fork");
+        exit(1);
+    }
 
-    switch((res = fork())) 
+    if (pid > 0)
+    {
+        parent_time = time(NULL);
+        printf("\nparent pid=%d; time: %s", getpid(), ctime(&parent_time));
+        snprintf(message, sizeof(message), "parent pid=%d; time: %s", getpid(), ctime(&parent_time));
+
+        close(pipe_fd[0]);
+
+        sleep(5);
+        write(pipe_fd[1], message, strlen(message) + 1);
+
+        close(pipe_fd[1]);
+    }
+    else
     {
 
-        case -1: 
-        {
-            int err = errno;
-            fprintf(stderr, "Fork error: %s (%d)\n", strerror(err), err);
-            break;
-        } 
+        close(pipe_fd[1]);
 
-        case 0:
-        {
-            time_t mytime = time(NULL);
-            struct tm *now = localtime(&mytime);
-            printf("Child time: %d:%d:%d from process with pid %d\n", now->tm_hour, now->tm_min, now->tm_sec, getpid());
-    
-			close(pipedesc[1]);//закрыли на запись
-            int len = 0;
-            char buf[size];
-			while((len = read(pipedesc[0], buf, sizeof(buf))) != 0) 
-            {
-				write(2, buf, len);
-			}
-			close(pipedesc[0]);
-            break;
-        } 
+        read(pipe_fd[0], message, sizeof(message));
+        
+        close(pipe_fd[0]);
 
-        default: 
-        {
-            sleep(5);
-
-            time_t mytime = time(NULL);
-            struct tm *now = localtime(&mytime);
-            char* parent_time = (char*)calloc(1, size);
-            sprintf(parent_time, "Parent time: %d:%d:%d from process with pid ", now->tm_hour, now->tm_min, now->tm_sec);
-            char* pid = (char*)calloc(1, 16);
-			sprintf(pid, "%d\n", getpid());
-            strcat(parent_time, pid);
-			
-			close(pipedesc[0]);
-			write(pipedesc[1], parent_time, strlen(parent_time) + 1);
-
-			free(parent_time);
-			free(pid);
-			close(pipedesc[1]);
-            break;
-        }  
-
+        time_t child_time = time(NULL);
+        printf("child pid=%d; time: %s", getpid(), ctime(&child_time));
+        printf("recieved message: %s\n", message);
     }
+
     return 0;
+
 }
