@@ -113,7 +113,9 @@ int customChmod(string mode_str, string f_name)
 
     mode_t n_mode = file_stat.st_mode;
 
-    if (isdigit(mode_str[0]))
+    int ch = atoi(mode_str);
+
+    if (strcmp(mode_str, "000") == 0 || (ch != 0 && strlen(mode_str) == 3))
     {
         mode_t mode = strtol(mode_str, NULL, 8);
 
