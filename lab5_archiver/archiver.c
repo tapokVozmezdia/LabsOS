@@ -34,7 +34,7 @@ File * readFile(char * block)
 
 }
 
-int addFileToArchive(Archive * arch, File * file) 
+int addFile(Archive * arch, File * file) 
 {
 
     if (arch->files == NULL) 
@@ -116,7 +116,7 @@ Archive * initArchive(string arch_name)
         read(fd, block, MAX_BLOCK_SIZE);
         File* file = readFile(block);
         read(fd, file->content, file->size);
-        addFileToArchive(arch, file);
+        addFile(arch, file);
     }
 
     free(block);
@@ -126,7 +126,7 @@ Archive * initArchive(string arch_name)
 
 }
 
-void printArchiveStatus(Archive * arch) 
+void printStatus(Archive * arch) 
 {
     if (arch->foiled)
         return;
@@ -220,7 +220,7 @@ void inputFile(Archive * arch, string filename)
     if (file == NULL) 
         return;
 
-    int res = addFileToArchive(arch, file);
+    int res = addFile(arch, file);
     saveArchive(arch);
     if (res == 0)
         printf("file successfully added: '%s'\n", filename);
@@ -250,7 +250,7 @@ void extractFile(Archive * arch, string filename)
             new_time.modtime = file->m_time;
             utime(filename, &new_time);
 
-            freeFileMemory(arch, arch->files[i]);
+            freeFile(arch, arch->files[i]);
             
             if (i != arch->size - 1) 
             {
@@ -268,7 +268,7 @@ void extractFile(Archive * arch, string filename)
 
 }
 
-void freeFileMemory(Archive * arch, File * file) 
+void freeFile(Archive * arch, File * file) 
 {
 
     if (file->name != NULL) 
@@ -280,13 +280,13 @@ void freeFileMemory(Archive * arch, File * file)
 
 }
 
-void freeArchiveMemory(Archive * arch) 
+void freeArchive(Archive * arch) 
 {
 
     for (int i = 0; i < arch->size; i++) 
     {
         if (arch->files[i] != NULL) 
-            freeFileMemory(arch, arch->files[i]);
+            freeFile(arch, arch->files[i]);
     }
 
     if (arch->files != NULL) 

@@ -42,15 +42,15 @@
     File * initFile(string filename);
     File * readFile(char * block);
 
-    void printArchiveStatus(Archive * arch);
+    void printStatus(Archive * arch);
 
-    int addFileToArchive(Archive * arch, File * file);
+    int addFile(Archive * arch, File * file);
 
     void inputFile(Archive * arch, string filename);
     void extractFile(Archive * arch, string filename);
 
-    void freeFileMemory(Archive * arch, File * file);
-    void freeArchiveMemory(Archive * arch);
+    void freeFile(Archive * arch, File * file);
+    void freeArchive(Archive * arch);
 
     void saveArchive(Archive * arch);
 

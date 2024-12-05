@@ -33,7 +33,7 @@ int main(int argc, char * argv[])
 		if (strcmp(argv[2], "-s") == 0 || strcmp(argv[2], "--stat") == 0) 
 		{
 			arch = initArchive(argv[1]);
-			printArchiveStatus(arch);
+			printStatus(arch);
 		}
 		else 
 		{
@@ -63,7 +63,7 @@ int main(int argc, char * argv[])
 	}
 
 	if (arch != NULL)
-    	freeArchiveMemory(arch);
+    	freeArchive(arch);
 
     return 0;
 
