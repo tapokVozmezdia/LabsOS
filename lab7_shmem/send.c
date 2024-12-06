@@ -97,7 +97,7 @@ int main()
         struct tm current_time = *localtime(&ts);
 
         strftime(timeStr, sizeof(timeStr), "%H:%M:%S;", &current_time);
-        snprintf(result, sizeof(result), "Process: %d; %s", getpid(), timeStr);
+        snprintf(result, sizeof(result), "send pid=%d; send time=%s;\n\t**shmem data**", getpid(), timeStr);
 
         strcpy(addr, result);
     }
