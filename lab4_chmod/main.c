@@ -1,12 +1,17 @@
 #include "chmfn.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char * argv[]) 
 {
-    if (argc != 3)
+    if (argc < 3) 
     {
-        fprintf(stderr, "invalid number of args\n");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "not anough args\n");
+        return 1;
     }
 
-    return customChmod(argv[1], argv[2]);
+    char * rights = argv[optind++];
+    char * filepath = argv[optind];
+    
+    setNewRights(filepath, rights);
+
+    return 0;
 }

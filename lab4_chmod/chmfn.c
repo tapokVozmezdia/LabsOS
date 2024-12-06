@@ -1,145 +1,157 @@
 #include "chmfn.h"
 
-int symMode(string mode_str, mode_t * f_mode)
+int rightsSettings(char * path, char * settings) 
 {
-    mode_t add = 0, rm = 0;
-    char type = mode_str[0];
-    int shift = 1;
-
-    if (type != 'u' && type != 'g' && type != 'o' && type != 'a')
+    struct stat st;
+    int answ = lstat(path, &st);
+    if (answ != 0) 
     {
-        type = 'a';
-        shift = 0;
+        perror("lstat");
+        exit(-1);
     }
+    mode_t prev_mode = st.st_mode;
+    int statchmod = prev_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+    char prev_rights[9];
+    sprintf(prev_rights, "%o", statchmod);
 
-    char op = mode_str[shift];
-    string prmns = &mode_str[shift + 1];
+    int user = 0, group = 0, others = 0, all = 0;
+    int op = 0;
+    int r = 0, w = 0, x = 0;
 
-    mode_t user_bit = 0, group_bit = 0, other_bit = 0;
-
-    switch (type)
+    int settings_step = 0, error = 0;
+    for (int i = 0; i < strlen(settings); i++) 
     {
-        case 'u':
+        if (settings_step == 0) 
         {
-            user_bit = S_IRWXU;
-            break;
-        }
-        case 'g':
-        {
-            group_bit = S_IRWXG;
-            break;
-        }
-        case 'o':
-        {
-            other_bit = S_IRWXO;
-            break;
-        }
-        case 'a':
-        {
-            user_bit = S_IRWXU;
-            group_bit = S_IRWXG;
-            other_bit = S_IRWXO;
-            break;
-        }
-        default:
-        {
-            break;
-        }
-    }
-
-    for (string p = prmns; *p; p++)
-    {
-        switch (*p)
-        {
-            case 'r':
+            switch (settings[i])
             {
-                add |= (S_IRUSR * !!(user_bit) | S_IRGRP * 
-                !!(group_bit) | S_IROTH * !!(other_bit));
-                break;
+                case 'u': 
+                { 
+                    user = 1; 
+                    break;
+                }
+                case 'g': 
+                { 
+                    group = 1; 
+                    break;
+                }
+                case 'o': 
+                { 
+                    others = 1; 
+                    break;
+                }
+                default: 
+                {
+                    if (user + group + others == 0) all = 1;
+                    settings_step = 1;
+                    break;
+                }
             }
-            case 'w':
-            {   
-                add |= (S_IWUSR * !!(user_bit) | S_IWGRP * 
-                    !!(group_bit) | S_IWOTH * !!(other_bit));
-                break;
-            }
-            case 'x':
-            {   
-                add |= (S_IXUSR * !!(user_bit) | S_IXGRP * 
-                !!(group_bit) | S_IXOTH * !!(other_bit));
-                break;
-            }
-            case '-':
-            {   
-                rm |= (S_IRWXU * !!(user_bit) | S_IRWXG * 
-                !!(group_bit) | S_IRWXO * !!(other_bit));
-                break;
-            }
-            default:
+        }
+        if (settings_step == 1) 
+        {
+            switch (settings[i])
             {
-                fprintf(stderr, "permission error: %c\n", *p);
-                return -1;
+                case '+': 
+                { 
+                    op = 1; 
+                    break;
+                }
+                case '-': 
+                { 
+                    op = -1; 
+                    break;
+                }
+                default: 
+                {
+                    settings_step = 2; 
+                    break;
+                }
+            }
+        }
+        if (settings_step == 2) 
+        {
+            switch (settings[i])
+            {
+                case 'r': 
+                { 
+                    r = 4; 
+                    break;
+                }
+                case 'w': 
+                { 
+                    w = 2; 
+                    break;
+                }
+                case 'x': 
+                { 
+                    x = 1; 
+                    break;
+                }
+                default: 
+                { 
+                    error = 1; 
+                    break;
+                }
             }
         }
     }
 
-    if (op == '+')
-        *f_mode |= add;
-    else if (op == '-')
-        *f_mode &= ~add;
-    else if (op == '=')
-    {
-        *f_mode &= ~(user_bit | group_bit | other_bit);
-        *f_mode |= add;
-    }
-    else
-    {
-        fprintf(stderr, "Invalid operation: %c\n", op);
+    if (!op || error) 
         return -1;
-    }
 
-    return 0;
+    int perm = r | w | x;
+    int mode = 0;
+
+    if (user || all) 
+        mode = mode | (perm << 6);
+    if (group || all) 
+        mode = mode | (perm << 3);
+    if (others || all) 
+        mode = mode | perm;
+
+    if (op == 1) 
+        mode = mode | prev_mode;
+    else if (op == -1) 
+        mode =  prev_mode & (~mode);
+    
+    return mode;
 }
 
-int customChmod(string mode_str, string f_name)
+int makeMode(char * rights) 
 {
-    struct stat file_stat;
+    int mode = 0;
 
-    if (stat(f_name, &file_stat) < 0)
+    int digit = rights[0] - '0';
+    digit = digit << 6;
+    mode = mode | digit;
+
+    digit = rights[1] - '0';
+    digit = digit << 3;
+    mode = mode | digit;
+
+    digit = rights[2] - '0';
+    mode = mode | digit;
+
+    return mode;
+}
+
+void setNewRights(char* path, char* rights) 
+{
+    int ch = atoi(rights);
+    int mode;
+    if (strcmp(rights, "000") == 0 || 
+        (ch != 0 && strlen(rights) == 3)) 
     {
-        fprintf(stderr, "stat error\n");
-        return 1;
-    }
-
-    mode_t n_mode = file_stat.st_mode;
-
-    int ch = atoi(mode_str);
-
-    if (strcmp(mode_str, "000") == 0 || (ch != 0 && strlen(mode_str) == 3))
+        mode = makeMode(rights);
+    } else 
     {
-        mode_t mode = strtol(mode_str, NULL, 8);
-
-        if (chmod(f_name, mode) < 0)
+        mode = rightsSettings(path, rights);
+        if (mode == -1) 
         {
-            fprintf(stderr, "chmod error\n");
-            return 1;
+            printf("chmod: invalid mode: %s\n", rights);
+            return;
         }
     }
-
-    else
-    {
-        if (symMode(mode_str, &n_mode) < 0)
-        {
-            fprintf(stderr, "symbol mode error\n");
-            return 1;
-        }
-
-        if (chmod(f_name, n_mode) < 0)
-        {
-            fprintf(stderr, "chmod error\n");
-            return 1;
-        }
-    }
-
-    return 0;
+    chmod(path, mode);
 }
