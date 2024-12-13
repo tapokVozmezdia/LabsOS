@@ -13,7 +13,7 @@
 pthread_mutex_t mut;
 int nums[SIZE];
 
-int tempo = 500;
+int tempo = 200;
 
 void sleep_ms(int ms)
 {
@@ -31,9 +31,9 @@ void* readCycle(void* arg)
         pthread_mutex_lock(&mut);
         printf("reading -\t"); 
         sleep_ms(tempo);
-        printf("tid: %i\tdata: [ ", pthread_self()); 
+        printf("tid: %i\tdata: [", pthread_self()); 
         for (int i = 0; i < SIZE; i++) 
-            printf ("%d ", nums[i]);
+            printf ("%d", nums[i]);
         printf("]\n");
         sleep_ms(tempo);
 
