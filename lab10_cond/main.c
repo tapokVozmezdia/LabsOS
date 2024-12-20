@@ -12,7 +12,7 @@
 #define THREAD_NUM 10
 #define SIZE 10
 
-pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mut;// = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 int cur_idx = 0;
