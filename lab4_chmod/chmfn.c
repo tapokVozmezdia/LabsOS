@@ -122,6 +122,13 @@ int makeMode(char * rights)
 {
     int mode = 0;
 
+    for (int i = 0; i <3; ++i)
+        if (rights[i] < '0' || rights[i] > '7')
+        {
+            printf("chmod: invalid mode: %s\n", rights);
+            exit(1);
+        }
+
     int digit = rights[0] - '0';
     digit = digit << 6;
     mode = mode | digit;
@@ -144,7 +151,7 @@ void setNewRights(char* path, char* rights)
         (ch != 0 && strlen(rights) == 3)) 
     {
         mode = makeMode(rights);
-    } else 
+    } else
     {
         mode = rightsSettings(path, rights);
         if (mode == -1) 
