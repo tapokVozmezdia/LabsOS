@@ -12,65 +12,60 @@
 #define THREAD_NUM 10
 #define SIZE 10
 
-pthread_mutex_t mut;
-char data[SIZE];
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
-int tempo = 100;
+int cur_idx = 0;
+int nums[SIZE];
+
+int tempo = 800;
 
 void sleep_ms(int ms)
 {
     usleep(ms * 1000);
 }
 
-int cur_idx = 0;
-
 void* readCycle(void* arg) 
 {
     (void)arg;
-    while (cur_idx < SIZE)
+    while (cur_idx < SIZE) 
     {
-        sleep_ms(tempo); 
         pthread_mutex_lock(&mut);
+        pthread_cond_wait(&cond, &mut);
         printf("reading -\t"); 
-        sleep_ms(tempo);
-        printf("tid: %li\tdata: [", pthread_self()); 
+        printf("tid: %li\tdata: [ ", pthread_self()); 
         for (int i = 0; i < SIZE; i++) 
-            printf ("%c", data[i]);
+            printf ("%d ", nums[i]);
         printf("]\n");
-        sleep_ms(tempo);
-
         pthread_mutex_unlock(&mut);
     } 
-
     pthread_exit(NULL);
 }
 
 void* writeCycle(void* arg) 
 {
     (void)arg;
-
     for (int i = 0; i < SIZE; i++) 
     {
-        sleep_ms(tempo);
+        sleep_ms(tempo); 
         pthread_mutex_lock(&mut);
-
         printf("\nwriting\n\n");
         cur_idx++;
-	    data[i] = (char)(i + 65);
-	    pthread_mutex_unlock(&mut);
+		nums[i] = i + 1;
+        pthread_cond_broadcast(&cond);
+		pthread_mutex_unlock(&mut);
     }
-
     pthread_exit(NULL);
 }
 
-int main() 
-{
+int main() {
+
     int check;
     pthread_mutex_init(&mut, NULL);
-    pthread_t readThreads[THREAD_NUM];
+    pthread_t read_threads[THREAD_NUM];
     for (int i = 0; i < THREAD_NUM; i++) 
     {
-        check = pthread_create(&readThreads[i], NULL, readCycle, NULL);
+        check = pthread_create(&read_threads[i], NULL, readCycle, NULL);
         if (check != 0) 
         {
             fprintf(stderr, "pthread create error");
@@ -78,8 +73,8 @@ int main()
         }
     }
 
-    pthread_t writeThread;
-    check = pthread_create(&writeThread, NULL, writeCycle, NULL);
+    pthread_t write_thread;
+    check = pthread_create(&write_thread, NULL, writeCycle, NULL);
     if (check != 0) 
     {
         fprintf(stderr, "pthread create error");
@@ -87,17 +82,16 @@ int main()
     }
     for (int i = 0; i < THREAD_NUM; i++) 
     {
-        void* status = NULL;
-
-        check = pthread_join(readThreads[i], &status);
-        if (check != 0) 
+		void* status = NULL;
+		check = pthread_join(read_threads[i], &status);
+		if (check != 0) 
         {
-            fprintf(stderr, "pthread join error");		
+			fprintf(stderr, "pthread join error");
             return 1;
-        }
-    }
+		}
+	}
 
-    pthread_join(writeThread, NULL);
+	pthread_join(write_thread, NULL);
     pthread_mutex_destroy(&mut);
     return 0;
 }
